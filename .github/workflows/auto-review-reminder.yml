@@ -16,12 +16,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Debug folder structure
-        run: |
-          ls -al
-          ls -al .github/
-          ls -al .github/scripts
-
       - name: Send Reminder to Discord
         uses: actions/github-script@v7
         env:
