@@ -1,0 +1,25 @@
+name: Review Reminder for Discord
+
+on:
+  pull_request:
+    branches:
+      - develop
+  schedule:
+    - cron: "*/5 * * * *" # 매 5분마다
+  workflow_dispatch:
+
+jobs:
+  review-reminder:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Reminder to Discord
+        uses: actions/github-script@v7
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_MENTION: ${{ secrets.DISCORD_MENTION }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('.github/scripts/auto-review-reminder.cjs');
+            await script({ github, context, core });
