@@ -20,6 +20,9 @@ module.exports = async ({ github, context, core }) => {
   // 해당 사용자의 리뷰어 배열 가져오기
   const reviewers = reviewerMap[creator];
 
+  console.log(`user: ${jinSJUser}`);
+  console.log(`reviwers: ${reviewers}`);
+
   // 매핑된 리뷰어가 있으면 리뷰어 요청 및 담당자 지정
   if (reviewers) {
     try {
