@@ -12,9 +12,11 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run assign reviewers script
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         env:
           COLLABORATORS: ${{ secrets.COLLABORATORS }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_MENTION: ${{ secrets.DISCORD_MENTION }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

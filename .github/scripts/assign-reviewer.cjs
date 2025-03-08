@@ -3,12 +3,21 @@ module.exports = async ({ github, context, core, ...rest }) => {
 
   // 환경 변수에서 사용자명 읽기
   const { jinSJUser } = JSON.parse(process.env.COLLABORATORS);
+  const discordMetions = JSON.parse(process.env.DISCORD_MENTION);
 
   // 모든 사용자명이 제대로 설정되었는지 확인
   if (!jinSJUser) {
     core.setFailed("필요한 환경 변수가 설정되지 않았습니다.");
     return;
   }
+
+  const pullRequests = await github.rest.pulls.list({
+    owner,
+    repo,
+    state: "open",
+  });
+
+  console.log(pullRequests);
 
   // 리뷰어 매핑 정의
   const reviewerMap = {
