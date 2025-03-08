@@ -14,12 +14,10 @@ jobs:
 
     steps:
       - name: Debug folder structure
-        uses: actions/github-script@v7
-        with: 
-          script: |
-            ls -al
-            ls -al .github/
-            ls -al .github/scripts
+        run: |
+          ls -al
+          ls -al .github/
+          ls -al .github/scripts
 
       - name: Send Reminder to Discord
         uses: actions/github-script@v7
