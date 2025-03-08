@@ -1,26 +1,14 @@
 module.exports = async ({ github, context, core, ...rest }) => {
-  console.log("======================== github ============================");
-  console.log(github);
-  console.log("========================= context ===========================");
-  console.log(context);
-  console.log("========================== core ============================");
-  console.log(core);
-  console.log("========================= rest ==============================");
-  console.log(rest)
-  console.log("============================================================");
-
   const creator = context.payload.pull_request.user.login;
 
   // 환경 변수에서 사용자명 읽기
-  const jinSJUser = process.env.JIN_SJ_USERNAME;
+  const { jinSJUser } = JSON.parse(process.env.COLLABORATORS);
 
   // 모든 사용자명이 제대로 설정되었는지 확인
   if (!jinSJUser) {
     core.setFailed("필요한 환경 변수가 설정되지 않았습니다.");
     return;
   }
-
-  console.log(`PR 생성자: ${creator}`);
 
   // 리뷰어 매핑 정의
   const reviewerMap = {
@@ -29,9 +17,6 @@ module.exports = async ({ github, context, core, ...rest }) => {
 
   // 해당 사용자의 리뷰어 배열 가져오기
   const reviewers = reviewerMap[creator];
-
-  console.log(`user: ${jinSJUser}`);
-  console.log(`reviwers: ${reviewers}`);
 
   // 매핑된 리뷰어가 있으면 리뷰어 요청 및 담당자 지정
   if (reviewers) {
