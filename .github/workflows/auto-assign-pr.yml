@@ -11,6 +11,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Debug file structure
+        run: |
+          ls -la
+          ls -la scripts/
+          cat scripts/assign-reviewer.cjs
+
       - name: Run assign reviewers script
         uses: actions/github-script@v6
         env:
