@@ -1,5 +1,7 @@
 module.exports = async ({ github, context, core, ...rest }) => {
   const creator = context.payload.pull_request.user.login;
+  const owner = context.repo.owner;
+  const repo = context.repo.repo;
 
   // 환경 변수에서 사용자명 읽기
   const { jinSJUser } = JSON.parse(process.env.COLLABORATORS);
