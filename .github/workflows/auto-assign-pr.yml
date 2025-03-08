@@ -14,7 +14,7 @@ jobs:
       - name: Run assign reviewers script
         uses: actions/github-script@v6
         env:
-          JIN_SJ_USERNAME: ${{ secrets.JIN_SJ_USERNAME }}
+          COLLABORATORS: ${{ secrets.COLLABORATORS }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
