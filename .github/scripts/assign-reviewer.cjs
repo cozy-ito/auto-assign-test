@@ -27,12 +27,12 @@ module.exports = async ({ github, context, core }) => {
   if (reviewers) {
     try {
       // 리뷰어 요청
-      await github.rest.pulls.requestReviewers({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        pull_number: context.payload.pull_request.number,
-        reviewers: reviewers,
-      });
+      // await github.rest.pulls.requestReviewers({
+      //   owner: context.repo.owner,
+      //   repo: context.repo.repo,
+      //   pull_number: context.payload.pull_request.number,
+      //   reviewers: reviewers,
+      // });
 
       // 본인을 담당자로 지정
       await github.rest.issues.addAssignees({
