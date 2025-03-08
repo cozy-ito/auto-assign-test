@@ -1,4 +1,14 @@
-module.exports = async ({ github, context, core }) => {
+module.exports = async ({ github, context, core, ...rest }) => {
+  console.log("======================== github ============================");
+  console.log(github);
+  console.log("========================= context ===========================");
+  console.log(context);
+  console.log("========================== core ============================");
+  console.log(core);
+  console.log("========================= rest ==============================");
+  console.log(rest)
+  console.log("============================================================");
+
   const creator = context.payload.pull_request.user.login;
 
   // 환경 변수에서 사용자명 읽기
