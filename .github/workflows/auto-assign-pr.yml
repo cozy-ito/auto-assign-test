@@ -16,8 +16,7 @@ jobs:
           ls -la
           ls -la .github/
           ls -la .github/scripts
-          ls -la scripts/
-          cat scripts/assign-reviewer.cjs
+          cat .github/scripts/assign-reviewer.cjs
 
       - name: Run assign reviewers script
         uses: actions/github-script@v6
