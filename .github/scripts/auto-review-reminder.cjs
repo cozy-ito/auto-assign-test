@@ -2,6 +2,18 @@
 //* 디스코드 커스텀 메시지 보내기 테스트
 //* =====================================
 module.exports = async ({ github, context }) => {
+  // 현재 날짜 확인
+  const currentDate = new Date();
+  const endDate = new Date("2025-03-21T23:59:59Z"); // 2025년 3월 21일 23:59:59 UTC
+
+  // 현재 날짜가 종료 날짜보다 이후인지 확인
+  if (currentDate > endDate) {
+    console.log(
+      "지정된 종료 날짜(2025년 3월 21일)이 지났습니다. 작업을 수행하지 않습니다.",
+    );
+    return; // 함수 종료
+  }
+
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   const discordMentions = JSON.parse(process.env.DISCORD_MENTION);
