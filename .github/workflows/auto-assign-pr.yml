@@ -18,5 +18,5 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const script = require('./.github/workflows/scripts/assign-reviewer.cjs');
+            const script = require('../../scripts/assign-reviewer.cjs');
             await script({ github, context, core });
