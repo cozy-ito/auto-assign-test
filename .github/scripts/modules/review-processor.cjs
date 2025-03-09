@@ -136,7 +136,8 @@ class DiscordMessageBuilder {
 
     // 디스코드 메시지 포맷팅
     let message = `[[PR] ${pullRequest.title}](<${pullRequest.html_url}>)
-리뷰어: <@${reviewerDiscord.id}> (${reviewerDiscord.displayName})
+PR 작성자: <@${authorDiscord.id}>
+리뷰어: ${reviewerDiscord.displayName}
 리뷰 상태: ${reviewMessage}
 
 리뷰 내용:
@@ -212,7 +213,7 @@ class ReviewAlarmService {
       );
 
       // Discord로 메시지 전송
-      await sendDiscordMessage(this.discordWebhook, [message]);
+      await sendDiscordMessage(this.discordWebhook, [message], { headerText: "🍀 리뷰 정보 🍀"});
     } catch (error) {
       console.error("리뷰 알림 처리 중 오류 발생:", error.message);
       core.setFailed(`리뷰 알림 처리 실패: ${error.message}`);
