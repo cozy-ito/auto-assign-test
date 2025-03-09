@@ -24,19 +24,40 @@ async function generatePRMessages(
   pullRequests,
   discordMentions,
 ) {
+  // 브랜치 보호 규칙 확인
+  let protectionRules = {
+    requiresApproval: false,
+    requiredApprovingReviewCount: 0,
+  };
+  try {
+    // 기본 브랜치 이름 가져오기
+    const repoInfo = await github.rest.repos.get({ owner, repo });
+    const defaultBranch = repoInfo.data.default_branch;
+
+    // 보호 규칙 가져오기
+    protectionRules = await getBranchProtectionRules(
+      github,
+      owner,
+      repo,
+      defaultBranch,
+    );
+    console.log(`${owner}/${repo} 레포지토리 보호 규칙:`, protectionRules);
+  } catch (error) {
+    console.warn(`보호 규칙 정보 가져오기 실패:`, error.message);
+  }
+
   // 레포지토리 협력자 목록 가져오기
   let hasCollaborators = false;
   try {
     const collaborators = await github.rest.repos.listCollaborators({
       owner,
       repo,
-      per_page: 1, // 1명만 확인해도 충분함
+      per_page: 1,
     });
     hasCollaborators = collaborators.data.length > 0;
     console.log(`${owner}/${repo} 레포지토리 협력자 여부:`, hasCollaborators);
   } catch (error) {
     console.warn(`협력자 정보 가져오기 실패:`, error.message);
-    // 오류 발생 시 기본적으로 협력자가 있다고 가정
     hasCollaborators = true;
   }
 
@@ -47,13 +68,14 @@ async function generatePRMessages(
       const requestedReviewers =
         pr.requested_reviewers?.map(({ login }) => login) || [];
 
-      // PR 리뷰 상태 분석
+      // PR 리뷰 상태 분석 - 보호 규칙 정보 추가 전달
       const reviewInfo = analyzeReviewStatuses(
         pr,
         reviews,
         requestedReviewers,
         discordMentions,
         hasCollaborators,
+        protectionRules,
       );
 
       // 메시지 생성
@@ -62,6 +84,7 @@ async function generatePRMessages(
         reviewInfo,
         discordMentions,
         hasCollaborators,
+        protectionRules,
       );
     }),
   );
@@ -129,10 +152,11 @@ function analyzeReviewStatuses(
     (state) => state === GITHUB_REVIEW_STATES.APPROVED,
   ).length;
 
-  // 협력자 유무와 승인 수에 따라 승인 완료 상태 결정
+  // 보호 규칙과 협력자 유무에 따라 승인 완료 상태 결정
   const isApprovalComplete =
     !hasCollaborators || // 협력자가 없으면 무조건 승인 완료
-    approvedReviewCount > 0; // 협력자가 있으면 하나 이상의 승인이 필요
+    !protectionRules.requiresApproval || // 보호 규칙에서 승인이 필요하지 않으면 완료
+    approvedReviewCount >= protectionRules.requiredApprovingReviewCount; // 필요한 승인 수 충족
 
   // 모든 리뷰어가 승인했는지 확인
   const isAllReviewersApproved =
@@ -162,6 +186,9 @@ function analyzeReviewStatuses(
     hasNoRequestedReviewers,
     approvedReviewCount,
     isApprovalComplete,
+    approvedReviewCount,
+    isApprovalComplete,
+    requiredApprovingReviewCount: protectionRules.requiredApprovingReviewCount,
   };
 }
 
