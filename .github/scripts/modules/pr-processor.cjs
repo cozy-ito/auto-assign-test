@@ -3,6 +3,10 @@
 //* =====================================
 
 const { getReviews } = require("./github-service.cjs");
+const {
+  GITHUB_REVIEW_STATES,
+  STATE_ABBREVIATIONS,
+} = require("./constants.cjs");
 
 /**
  * PR 정보를 처리하여 메시지 배열을 생성합니다.
@@ -11,8 +15,6 @@ const { getReviews } = require("./github-service.cjs");
  * @param {string} repo - 저장소 이름
  * @param {Array} pullRequests - PR 목록
  * @param {Object} discordMentions - GitHub 사용자명과 Discord ID 매핑
- * @param {Object} REVIEW_STATES - 리뷰 상태 상수
- * @param {Object} STATE_ABBREVIATIONS - 리뷰 상태 약어 매핑
  * @returns {Array} 메시지 배열
  */
 async function generatePRMessages(
@@ -21,8 +23,6 @@ async function generatePRMessages(
   repo,
   pullRequests,
   discordMentions,
-  REVIEW_STATES,
-  STATE_ABBREVIATIONS,
 ) {
   return await Promise.all(
     pullRequests.map(async (pr) => {
@@ -38,8 +38,6 @@ async function generatePRMessages(
         reviews,
         requestedReviewers,
         discordMentions,
-        REVIEW_STATES,
-        STATE_ABBREVIATIONS,
       );
 
       // 메시지 생성
@@ -54,8 +52,6 @@ async function generatePRMessages(
  * @param {Array} reviews - 리뷰 목록
  * @param {Array} requestedReviewers - 요청된 리뷰어 목록
  * @param {Object} discordMentions - GitHub 사용자명과 Discord ID 매핑
- * @param {Object} REVIEW_STATES - 리뷰 상태 상수
- * @param {Object} STATE_ABBREVIATIONS - 리뷰 상태 약어 매핑
  * @returns {Object} 리뷰 정보 객체
  */
 function analyzeReviewStatuses(
@@ -63,21 +59,9 @@ function analyzeReviewStatuses(
   reviews,
   requestedReviewers,
   discordMentions,
-  REVIEW_STATES,
-  STATE_ABBREVIATIONS,
 ) {
   // 리뷰 상태를 관리하는 Map 객체 생성
   const reviewStates = new Map();
-
-  // 디버깅을 위해 모든 리뷰 로깅
-  console.log(
-    "리뷰 상태 목록:",
-    reviews.map((r) => ({
-      reviewer: r.user.login,
-      state: r.state,
-    })),
-  );
-
   reviews.forEach((review) => {
     const reviewer = review.user.login;
     const state = review.state;
@@ -87,17 +71,16 @@ function analyzeReviewStatuses(
     }
   });
 
-  // 디버깅을 위해 리뷰 상태 맵 로깅
-  console.log("처리된 리뷰 상태 맵:", Object.fromEntries(reviewStates));
-  console.log("요청된 리뷰어 목록:", requestedReviewers);
+  // 디버깅용 로그
+  console.log(`PR #${pr.number} 리뷰 상태:`, Object.fromEntries(reviewStates));
 
   // 리뷰어별 상태 메시지 생성
   const reviewStatuses = [...reviewStates].map(([reviewer, state]) => {
     const discordUsername = discordMentions[reviewer] || reviewer;
     const reviewState = STATE_ABBREVIATIONS[state] || state.toLowerCase();
 
-    // GitHub API에서 반환하는 상태값 그대로 비교
-    return state === "APPROVED"
+    // 중요: GitHub API 리뷰 상태를 직접 비교 (APPROVED)
+    return state === GITHUB_REVIEW_STATES.APPROVED
       ? `${discordUsername}(${reviewState})` // APPROVED인 경우 멘션 없이 이름만 표시
       : `<@${discordUsername}>(${reviewState})`; // 나머지 상태인 경우 멘션
   });
@@ -107,8 +90,6 @@ function analyzeReviewStatuses(
     (reviewer) => !reviewStates.has(reviewer) && reviewer !== pr.user.login, // PR 작성자 제외
   );
 
-  console.log("리뷰 시작하지 않은 리뷰어:", notStartedReviewers);
-
   const notStartedMentions = notStartedReviewers.map((reviewer) => {
     const discordUsername = discordMentions[reviewer] || reviewer;
     return `<@${discordUsername}>(X)`;
@@ -116,34 +97,27 @@ function analyzeReviewStatuses(
 
   const reviewStatusMessage = [...reviewStatuses, ...notStartedMentions];
 
-  // 모든 리뷰어가 승인했는지 확인 (수정된 로직)
-  const hasReviewers = requestedReviewers.length > 0;
-
-  // 모든 리뷰어가 APPROVED 상태인지 확인
-  const allApproved = requestedReviewers.every((reviewer) => {
-    const state = reviewStates.get(reviewer);
-    return state === "APPROVED";
-  });
-
-  // 리뷰를 시작하지 않은 리뷰어가 없는지 확인
-  const noMissingReviews = notStartedReviewers.length === 0;
-
-  // 모든 조건을 충족하는지 확인
+  // 모든 리뷰어가 승인했는지 확인 (중요: GITHUB_REVIEW_STATES.APPROVED 사용)
   const isAllReviewersApproved =
-    hasReviewers && allApproved && noMissingReviews;
+    requestedReviewers.length > 0 &&
+    requestedReviewers.every(
+      (reviewer) =>
+        reviewStates.get(reviewer) === GITHUB_REVIEW_STATES.APPROVED,
+    );
 
-  console.log("리뷰어 상태 확인:", {
-    hasReviewers,
-    allApproved,
-    noMissingReviews,
+  const isNotHasPendingReviews = notStartedReviewers.length === 0;
+
+  // 디버깅용 로그
+  console.log(`PR #${pr.number} 승인 상태:`, {
+    requestedReviewers,
     isAllReviewersApproved,
+    isNotHasPendingReviews,
   });
 
   return {
     reviewStatusMessage,
     isAllReviewersApproved,
-    hasReviewers,
-    noMissingReviews,
+    isNotHasPendingReviews,
   };
 }
 
@@ -155,12 +129,16 @@ function analyzeReviewStatuses(
  * @returns {string} 메시지
  */
 function generatePRMessage(pr, reviewInfo, discordMentions) {
-  const { reviewStatusMessage, isAllReviewersApproved } = reviewInfo;
+  const {
+    reviewStatusMessage,
+    isAllReviewersApproved,
+    isNotHasPendingReviews,
+  } = reviewInfo;
 
-  // 모든 리뷰어가 APPROVED 상태인 경우
-  if (isAllReviewersApproved) {
+  // 모든 리뷰어가 APPROVED 상태이고 리뷰를 시작하지 않은 리뷰어가 없는 경우
+  if (isAllReviewersApproved && isNotHasPendingReviews) {
     const authorMention = discordMentions[pr.user.login] || pr.user.login;
-    console.log(`PR #${pr.number}: 모든 리뷰어 승인 완료 메시지 생성`);
+    console.log(`PR #${pr.number}: 모든 리뷰 승인 완료 메시지 생성`);
     return `[[PR] ${pr.title}](<${pr.html_url}>)\n리뷰어: ${reviewStatusMessage.join(", ")}\n<@${authorMention}>, 모든 리뷰어의 승인 완료! 코멘트를 확인 후 머지해 주세요 🚀`;
   }
 

@@ -2,21 +2,21 @@
 //* 상수 정의 모듈
 //* =====================================
 
-// 리뷰 상태 상수 정의
-const REVIEW_STATES = {
+// GitHub에서 반환하는 리뷰 상태 값
+const GITHUB_REVIEW_STATES = {
   APPROVED: "APPROVED",
   CHANGES_REQUESTED: "CHANGES_REQUESTED",
   COMMENTED: "COMMENTED",
 };
 
-// 리뷰 상태 약어 매핑을 상수로 정의
+// 리뷰 상태 표시용 약어
 const STATE_ABBREVIATIONS = {
-  [REVIEW_STATES.APPROVED]: "Approved",
-  [REVIEW_STATES.CHANGES_REQUESTED]: "Changes Requested",
-  [REVIEW_STATES.COMMENTED]: "Commented",
+  [GITHUB_REVIEW_STATES.APPROVED]: "Approved",
+  [GITHUB_REVIEW_STATES.CHANGES_REQUESTED]: "Changes Requested",
+  [GITHUB_REVIEW_STATES.COMMENTED]: "Commented",
 };
 
 module.exports = {
-  REVIEW_STATES,
+  GITHUB_REVIEW_STATES,
   STATE_ABBREVIATIONS,
 };
