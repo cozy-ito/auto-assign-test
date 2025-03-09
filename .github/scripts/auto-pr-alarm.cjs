@@ -12,6 +12,12 @@ module.exports = async ({ github, context, core }) => {
 
   // Discord 멘션 데이터 파싱
   const discordMentions = safeJsonParse(process.env.DISCORD_MENTION, {});
+  
+  // auto_assigning 작업에서 전달된 할당된 리뷰어 정보
+  const assignedReviewersJson = process.env.ASSIGNED_REVIEWERS || '[]';
+  const assignedReviewers = safeJsonParse(assignedReviewersJson, []);
+
+  console.log("할당된 리뷰어 정보:", assignedReviewers);
 
   try {
     // PR 이벤트 타입 확인
@@ -24,6 +30,23 @@ module.exports = async ({ github, context, core }) => {
     if (!pullRequest) {
       console.log("처리할 PR 정보 없음");
       return;
+    }
+
+    // 자동 할당된 리뷰어 정보를 PR 객체에 추가
+    // 이미 requested_reviewers가 있을 경우 병합, 없으면 새로 할당
+    if (assignedReviewers.length > 0 && !pullRequest.requested_reviewers) {
+      pullRequest.requested_reviewers = assignedReviewers.map(login => ({ login }));
+    } else if (assignedReviewers.length > 0) {
+      // 이미 존재하는 리뷰어와 새로 할당된 리뷰어 합치기
+      const existingLogins = pullRequest.requested_reviewers.map(r => r.login);
+      const newReviewers = assignedReviewers
+        .filter(login => !existingLogins.includes(login))
+        .map(login => ({ login }));
+      
+      pullRequest.requested_reviewers = [
+        ...pullRequest.requested_reviewers,
+        ...newReviewers
+      ];
     }
 
     // PR 메시지 생성
