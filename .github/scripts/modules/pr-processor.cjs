@@ -161,6 +161,7 @@ function analyzeReviewStatuses(
   requestedReviewers,
   discordMentions,
   hasCollaborators,
+  protectionRules
 ) {
   // 리뷰 상태를 관리하는 Map 객체 생성
   const reviewStates = new Map();
