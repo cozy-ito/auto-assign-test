@@ -1,5 +1,5 @@
 //* =====================================
-//* PR 알림 모듈
+//* PR 알림 스크립트
 //* =====================================
 const { generatePRMessages } = require("./modules/pr-processor.cjs");
 const { sendDiscordMessage } = require("./modules/discord-service.cjs");
@@ -18,29 +18,11 @@ module.exports = async ({ github, context, core }) => {
     const eventType = context.eventName;
     const action = context.payload.action;
 
-    // 처리할 이벤트 및 액션 정의
-    const handledPRActions = [
-      "opened",
-      "reopened",
-      "synchronize",
-      "ready_for_review",
-    ];
+    // 현재 PR 정보 가져오기
+    const pullRequest = context.payload.pull_request;
 
-    // PR 이벤트인지 확인
-    const isPREvent = eventType === "pull_request";
-    const isValidPRAction = isPREvent && handledPRActions.includes(action);
-
-    // 타겟 PR 결정
-    let targetPRs = [];
-
-    if (isValidPRAction) {
-      // 현재 이벤트의 PR만 처리
-      targetPRs = [context.payload.pull_request];
-    }
-
-    // PR이 없으면 종료
-    if (targetPRs.length === 0) {
-      console.log("처리할 PR이 없습니다.");
+    if (!pullRequest) {
+      console.log("처리할 PR 정보 없음");
       return;
     }
 
@@ -49,7 +31,7 @@ module.exports = async ({ github, context, core }) => {
       github,
       owner,
       repo,
-      targetPRs,
+      [pullRequest],
       discordMentions,
     );
 
