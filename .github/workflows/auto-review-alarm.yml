@@ -1,4 +1,4 @@
-name: Auto Assign Reviwer/Assignee and Send Discord Reminder
+name: Auto Send Discord Review Reminder
 
 on:
   pull_request_review:
