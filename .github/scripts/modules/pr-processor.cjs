@@ -161,7 +161,7 @@ function analyzeReviewStatuses(
   requestedReviewers,
   discordMentions,
   hasCollaborators,
-  protectionRules
+  protectionRules,
 ) {
   // 리뷰 상태를 관리하는 Map 객체 생성
   const reviewStates = new Map();
@@ -273,6 +273,14 @@ function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
   // 머지 가능 여부 확인
   const canMerge = isApprovalComplete && isNotHasPendingReviews;
 
+  // 디버깅을 위해 현재 상태 로깅
+  console.log(`PR #${pr.number} 상태:`, {
+    canMerge,
+    hasNoRequestedReviewers,
+    approvedReviewCount,
+    reviewStatusMessage: reviewStatusMessage.length,
+  });
+
   if (canMerge) {
     // 머지 가능한 경우의 메시지 생성
     let approvalMessage;
@@ -281,12 +289,8 @@ function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
       // 협력자가 없는 경우
       approvalMessage =
         "모든 리뷰어의 승인 완료! 코멘트를 확인 후 머지해 주세요 🚀";
-    } else if (hasNoRequestedReviewers) {
-      // 협력자는 있지만 리뷰어가 없는 경우
-      approvalMessage =
-        "할당된 리뷰어가 없지만, 머지 규칙에 따라 적어도 하나의 승인이 필요합니다.";
     } else if (approvedReviewCount > 0) {
-      // 협력자가 있고, 최소 1개 이상의 승인을 받은 경우
+      // 승인을 받은 경우 (이 조건을 먼저 확인)
       if (isAllReviewersApproved) {
         approvalMessage =
           "모든 리뷰어의 승인 완료! 코멘트를 확인 후 머지해 주세요 🚀";
@@ -294,6 +298,13 @@ function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
         approvalMessage =
           "필요한 승인 수를 만족했습니다! 코멘트를 확인 후 머지해 주세요 🚀";
       }
+    } else if (hasNoRequestedReviewers) {
+      // 리뷰어가 없는 경우 (승인 확인 후 검사)
+      approvalMessage =
+        "할당된 리뷰어가 없지만, 머지 규칙에 따라 적어도 하나의 승인이 필요합니다.";
+    } else {
+      // 그 외의 경우는 기본 메시지
+      approvalMessage = "머지 준비가 완료되었습니다.";
     }
 
     console.log(`PR #${pr.number}: ${approvalMessage}`);
