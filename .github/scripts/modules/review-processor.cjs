@@ -1,8 +1,8 @@
 //* =====================================
 //* 리뷰 리마인더 모듈
 //* =====================================
-const { sendDiscordMessage } = require("./modules/discord-service.cjs");
-const { getReviews } = require("./modules/github-service.cjs");
+const { sendDiscordMessage } = require("./discord-service.cjs");
+const { getReviews } = require("./github-service.cjs");
 
 /**
  * 리뷰 상태를 매핑하는 함수
