@@ -10,13 +10,13 @@ const { getReviews } = require("./github-service.cjs");
  * @returns {string} 이모지와 함께하는 상태 메시지
  */
 function mapReviewState(state) {
-  console.log("전달받은 상태 (state): ", state);
+  const upperCaseState = state.toUpperCase();
   const stateMap = {
     APPROVED: "승인 ✅",
     CHANGES_REQUESTED: "변경 요청 ⚠️",
     COMMENTED: "코멘트 💬",
   };
-  return stateMap[state] || "리뷰 상태 알 수 없음 ❓";
+  return stateMap[upperCaseState] || "리뷰 상태 알 수 없음 ❓";
 }
 
 /**
