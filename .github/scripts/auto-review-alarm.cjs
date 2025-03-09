@@ -3,7 +3,7 @@
 //* =====================================
 
 const { safeJsonParse } = require("./modules/utils.cjs");
-const { ReviewAlarmService } = requre("./modules/review-processor.cjs");
+const { ReviewAlarmService } = require("./modules/review-processor.cjs");
 
 module.exports = async ({ github, context }) => {
   // 설정 생성
