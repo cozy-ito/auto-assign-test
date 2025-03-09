@@ -237,6 +237,11 @@ function analyzeReviewStatuses(
         reviewStates.get(reviewer) === GITHUB_REVIEW_STATES.APPROVED,
     );
 
+  // 부정적인 리뷰 상태 확인 (예: CHANGES_REQUESTED, DISMISSED)
+  const hasNegativeReviews = [...reviewStates.values()].some(
+    (state) => state === "CHANGES_REQUESTED" || state === "DISMISSED",
+  );
+
   // 보류 중인 리뷰가 없는지 확인
   const isNotHasPendingReviews = notStartedReviewers.length === 0;
 
@@ -248,6 +253,7 @@ function analyzeReviewStatuses(
     hasNoRequestedReviewers,
     approvedReviewCount,
     isApprovalComplete,
+    hasNegativeReviews,
     requiredApprovingReviewCount: protectionRules.requiredApprovingReviewCount,
   });
 
@@ -258,6 +264,7 @@ function analyzeReviewStatuses(
     hasNoRequestedReviewers,
     approvedReviewCount,
     isApprovalComplete,
+    hasNegativeReviews,
     requiredApprovingReviewCount: protectionRules.requiredApprovingReviewCount,
   };
 }
@@ -278,19 +285,22 @@ function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
     hasNoRequestedReviewers,
     approvedReviewCount,
     isApprovalComplete,
+    hasNegativeReviews,
   } = reviewInfo;
 
   // PR 작성자 언급을 위한 Discord ID
   const authorMention = discordMentions[pr.user.login].id || pr.user.login;
 
   // 머지 가능 여부 확인
-  const canMerge = isApprovalComplete && isNotHasPendingReviews;
+  const canMerge =
+    isApprovalComplete && isNotHasPendingReviews && !hasNegativeReviews;
 
   // 디버깅을 위해 현재 상태 로깅
   console.log(`PR #${pr.number} 상태:`, {
     canMerge,
     hasNoRequestedReviewers,
     approvedReviewCount,
+    hasNegativeReviews,
     reviewStatusMessage: reviewStatusMessage.length,
   });
 
@@ -330,6 +340,10 @@ function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
       : "";
 
     return `[[PR] ${pr.title}](<${pr.html_url}>)\n${reviewerListMessage}<@${authorMention}>, ${approvalMessage}`;
+  } else if (hasNegativeReviews) {
+    // 부정적인 리뷰가 있는 경우 특별 메시지
+    const showReviewers = reviewStatusMessage.length > 0;
+    return `[[PR] ${pr.title}](<${pr.html_url}>)\n${showReviewers ? `리뷰어: ${reviewStatusMessage.join(", ")}\n` : ""}<@${authorMention}>, 머지 준비가 완료되지 않았습니다. 리뷰 변경 요청을 확인해 주세요.`;
   }
 
   // 머지 불가능한 일반 메시지
