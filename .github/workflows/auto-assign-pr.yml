@@ -1,11 +1,11 @@
-name: PR Review Management
+name: Auto Assign Reviwer/Assignee and Send Discord Reminder
 
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     branches: ["*"]
   schedule:
-    - cron: "0 12 * * *" # 매 5분마다
+    - cron: "0 17 * * *" # 매일 오후 5시
   workflow_dispatch:
 
 jobs:
@@ -29,12 +29,6 @@ jobs:
           #   "jinSJUser": "cozy-ito"
           # }
           COLLABORATORS: ${{ secrets.COLLABORATORS }}
-          # {
-          #   "id": "345674...",
-          #   "displayName": "이토"
-          # }[]
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          DISCORD_MENTION: ${{ secrets.DISCORD_MENTION }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
