@@ -5,7 +5,7 @@
 const { safeJsonParse } = require("./modules/utils.cjs");
 const { ReviewAlarmService } = require("./modules/review-processor.cjs");
 
-module.exports = async ({ github, context }) => {
+module.exports = async ({ github, context, core }) => {
   // 설정 생성
   const config = {
     discordWebhook: process.env.DISCORD_WEBHOOK,
