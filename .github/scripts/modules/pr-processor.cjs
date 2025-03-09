@@ -115,6 +115,8 @@ async function getBranchProtectionRules(github, owner, repo, branch = "main") {
       const requiredApprovingReviewCount =
         rules.required_approving_review_count || 0;
 
+      console.log(`============= 보호 규칙`, response.data, rules);
+
       return {
         requiresApproval: requiredApprovingReviewCount > 0,
         requiredApprovingReviewCount,
