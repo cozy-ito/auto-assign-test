@@ -3,7 +3,7 @@ name: Review Reminder for Discord
 on:
   pull_request:
     branches:
-      - develop
+      - main
   schedule:
     - cron: "*/5 * * * *" # 매 5분마다
   workflow_dispatch:
