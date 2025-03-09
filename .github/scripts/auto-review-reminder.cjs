@@ -94,7 +94,7 @@ module.exports = async ({ github, context }) => {
           const discordUsername = discordMentions[reviewer] || reviewer;
           const reviewState = STATE_ABBREVIATIONS[state] || state.toLowerCase();
           // 올바른 비교: state가 "APPROVED"인지 확인
-          return state === STATE_ABBREVIATIONS.APPROVED.toUpperCase()
+          return state === "APPROVED"
             ? `${discordUsername}(${reviewState})` // APPROVED인 경우 멘션 없이 이름만 표시
             : `<@${discordUsername}>(${reviewState})`; // 나머지 상태인 경우 멘션
         });
@@ -115,9 +115,7 @@ module.exports = async ({ github, context }) => {
         const isAllReviewersApproved =
           requestedReviewers.length > 0 &&
           requestedReviewers.every(
-            (reviewer) =>
-              reviewStates.get(reviewer) ===
-              STATE_ABBREVIATIONS.APPROVED.toUpperCase(),
+            (reviewer) => reviewStates.get(reviewer) === "APPROVED",
           );
         const isNotHasPendingReviews = notStartedReviewers.length === 0;
 
