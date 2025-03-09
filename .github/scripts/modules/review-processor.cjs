@@ -131,19 +131,23 @@ class DiscordMessageBuilder {
     const reviewerDiscord =
       this.reviewerInfoManager.getDiscordInfo(reviewerLogin);
 
+    // PR 작성자의 디스코드 정보 가져오기 (추가된 부분)
+    const authorLogin = pullRequest.user.login;
+    const authorDiscord = this.reviewerInfoManager.getDiscordInfo(authorLogin);
+
     // 리뷰 상태 메시지
     const reviewMessage = mapReviewState(review.state);
 
     // 디스코드 메시지 포맷팅
     let message = `[[PR] ${pullRequest.title}](<${pullRequest.html_url}>)
-PR 작성자: <@${authorDiscord.id}>
-리뷰어: ${reviewerDiscord.displayName}
-리뷰 상태: ${reviewMessage}
-
-리뷰 내용:
-\`\`\`
-${review.body || "상세 리뷰 내용 없음"}
-\`\`\``;
+  PR 작성자: <@${authorDiscord.id}>
+  리뷰어: ${reviewerDiscord.displayName}
+  리뷰 상태: ${reviewMessage}
+  
+  리뷰 내용:
+  \`\`\`
+  ${review.body || "상세 리뷰 내용 없음"}
+  \`\`\``;
 
     // 보류 중인 리뷰어 멘션 생성
     const pendingReviewerMentions = reviewAnalysis.pendingReviewers
@@ -156,7 +160,7 @@ ${review.body || "상세 리뷰 내용 없음"}
     // 보류 중인 리뷰어가 있다면 멘션 추가
     if (pendingReviewerMentions) {
       message += `\n⏳ 아직 리뷰하지 않은 리뷰어들: ${pendingReviewerMentions}
-리뷰를 완료해 주세요! 🔍`;
+  리뷰를 완료해 주세요! 🔍`;
     }
 
     return message;
@@ -213,7 +217,9 @@ class ReviewAlarmService {
       );
 
       // Discord로 메시지 전송
-      await sendDiscordMessage(this.discordWebhook, [message], { headerText: "🍀 리뷰 정보 🍀"});
+      await sendDiscordMessage(this.discordWebhook, [message], {
+        headerText: "🍀 리뷰 정보 🍀",
+      });
     } catch (error) {
       console.error("리뷰 알림 처리 중 오류 발생:", error.message);
       core.setFailed(`리뷰 알림 처리 실패: ${error.message}`);
