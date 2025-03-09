@@ -24,13 +24,28 @@ async function generatePRMessages(
   pullRequests,
   discordMentions,
 ) {
+  // 레포지토리 협력자 목록 가져오기
+  let hasCollaborators = false;
+  try {
+    const collaborators = await github.rest.repos.listCollaborators({
+      owner,
+      repo,
+      per_page: 1, // 1명만 확인해도 충분함
+    });
+    hasCollaborators = collaborators.data.length > 0;
+    console.log(`${owner}/${repo} 레포지토리 협력자 여부:`, hasCollaborators);
+  } catch (error) {
+    console.warn(`협력자 정보 가져오기 실패:`, error.message);
+    // 오류 발생 시 기본적으로 협력자가 있다고 가정
+    hasCollaborators = true;
+  }
+
   return await Promise.all(
     pullRequests.map(async (pr) => {
       console.log(`PR #${pr.number} "${pr.title}" 처리 중`);
       const reviews = await getReviews(github, owner, repo, pr.number);
-      const requestedReviewers = pr.requested_reviewers.map(
-        ({ login }) => login,
-      );
+      const requestedReviewers =
+        pr.requested_reviewers?.map(({ login }) => login) || [];
 
       // PR 리뷰 상태 분석
       const reviewInfo = analyzeReviewStatuses(
@@ -38,10 +53,16 @@ async function generatePRMessages(
         reviews,
         requestedReviewers,
         discordMentions,
+        hasCollaborators,
       );
 
       // 메시지 생성
-      return generatePRMessage(pr, reviewInfo, discordMentions);
+      return generatePRMessage(
+        pr,
+        reviewInfo,
+        discordMentions,
+        hasCollaborators,
+      );
     }),
   );
 }
@@ -52,6 +73,7 @@ async function generatePRMessages(
  * @param {Array} reviews - 리뷰 목록
  * @param {Array} requestedReviewers - 요청된 리뷰어 목록
  * @param {Object} discordMentions - GitHub 사용자명과 Discord ID 매핑
+ * @param {boolean} hasCollaborators - 레포지토리에 협력자가 있는지 여부
  * @returns {Object} 리뷰 정보 객체
  */
 function analyzeReviewStatuses(
@@ -59,6 +81,7 @@ function analyzeReviewStatuses(
   reviews,
   requestedReviewers,
   discordMentions,
+  hasCollaborators,
 ) {
   // 리뷰 상태를 관리하는 Map 객체 생성
   const reviewStates = new Map();
@@ -73,6 +96,7 @@ function analyzeReviewStatuses(
 
   // 디버깅용 로그
   console.log(`PR #${pr.number} 리뷰 상태:`, Object.fromEntries(reviewStates));
+  console.log(`PR #${pr.number} 요청된 리뷰어:`, requestedReviewers);
 
   // 리뷰어별 상태 메시지 생성
   const reviewStatuses = [...reviewStates].map(([reviewer, state]) => {
@@ -97,19 +121,36 @@ function analyzeReviewStatuses(
 
   const reviewStatusMessage = [...reviewStatuses, ...notStartedMentions];
 
-  // 모든 리뷰어가 승인했는지 확인 (중요: GITHUB_REVIEW_STATES.APPROVED 사용)
+  // 할당된 리뷰어가 없는 경우
+  const hasNoRequestedReviewers = requestedReviewers.length === 0;
+
+  // 승인된 리뷰 수 계산
+  const approvedReviewCount = [...reviewStates.values()].filter(
+    (state) => state === GITHUB_REVIEW_STATES.APPROVED,
+  ).length;
+
+  // 협력자 유무와 승인 수에 따라 승인 완료 상태 결정
+  const isApprovalComplete =
+    !hasCollaborators || // 협력자가 없으면 무조건 승인 완료
+    approvedReviewCount > 0; // 협력자가 있으면 하나 이상의 승인이 필요
+
+  // 모든 리뷰어가 승인했는지 확인
   const isAllReviewersApproved =
-    requestedReviewers.length > 0 &&
+    hasNoRequestedReviewers || // 리뷰어가 없으면 true
     requestedReviewers.every(
       (reviewer) =>
         reviewStates.get(reviewer) === GITHUB_REVIEW_STATES.APPROVED,
     );
 
+  // 보류 중인 리뷰가 없는지 확인
   const isNotHasPendingReviews = notStartedReviewers.length === 0;
 
   // 디버깅용 로그
   console.log(`PR #${pr.number} 승인 상태:`, {
-    requestedReviewers,
+    hasCollaborators,
+    hasNoRequestedReviewers,
+    approvedReviewCount,
+    isApprovalComplete,
     isAllReviewersApproved,
     isNotHasPendingReviews,
   });
@@ -118,6 +159,9 @@ function analyzeReviewStatuses(
     reviewStatusMessage,
     isAllReviewersApproved,
     isNotHasPendingReviews,
+    hasNoRequestedReviewers,
+    approvedReviewCount,
+    isApprovalComplete,
   };
 }
 
@@ -126,24 +170,63 @@ function analyzeReviewStatuses(
  * @param {Object} pr - PR 객체
  * @param {Object} reviewInfo - 리뷰 정보 객체
  * @param {Object} discordMentions - GitHub 사용자명과 Discord ID 매핑
+ * @param {boolean} hasCollaborators - 레포지토리에 협력자가 있는지 여부
  * @returns {string} 메시지
  */
-function generatePRMessage(pr, reviewInfo, discordMentions) {
+function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
   const {
     reviewStatusMessage,
     isAllReviewersApproved,
     isNotHasPendingReviews,
+    hasNoRequestedReviewers,
+    approvedReviewCount,
+    isApprovalComplete,
   } = reviewInfo;
 
-  // 모든 리뷰어가 APPROVED 상태이고 리뷰를 시작하지 않은 리뷰어가 없는 경우
-  if (isAllReviewersApproved && isNotHasPendingReviews) {
-    const authorMention = discordMentions[pr.user.login] || pr.user.login;
-    console.log(`PR #${pr.number}: 모든 리뷰 승인 완료 메시지 생성`);
-    return `[[PR] ${pr.title}](<${pr.html_url}>)\n리뷰어: ${reviewStatusMessage.join(", ")}\n<@${authorMention}>, 모든 리뷰어의 승인 완료! 코멘트를 확인 후 머지해 주세요 🚀`;
+  // PR 작성자 언급을 위한 Discord ID
+  const authorMention = discordMentions[pr.user.login] || pr.user.login;
+
+  // 머지 가능 여부 확인
+  const canMerge = isApprovalComplete && isNotHasPendingReviews;
+
+  if (canMerge) {
+    // 머지 가능한 경우의 메시지 생성
+    let approvalMessage;
+
+    if (!hasCollaborators) {
+      // 협력자가 없는 경우
+      approvalMessage =
+        "모든 리뷰어의 승인 완료! 코멘트를 확인 후 머지해 주세요 🚀";
+    } else if (hasNoRequestedReviewers) {
+      // 협력자는 있지만 리뷰어가 없는 경우
+      approvalMessage =
+        "할당된 리뷰어가 없지만, 머지 규칙에 따라 적어도 하나의 승인이 필요합니다.";
+    } else if (approvedReviewCount > 0) {
+      // 협력자가 있고, 최소 1개 이상의 승인을 받은 경우
+      if (isAllReviewersApproved) {
+        approvalMessage =
+          "모든 리뷰어의 승인 완료! 코멘트를 확인 후 머지해 주세요 🚀";
+      } else {
+        approvalMessage =
+          "필요한 승인 수를 만족했습니다! 코멘트를 확인 후 머지해 주세요 🚀";
+      }
+    }
+
+    console.log(`PR #${pr.number}: ${approvalMessage}`);
+
+    // 리뷰어 목록 포함 여부 결정
+    // 협력자가 있고 리뷰어가 있을 때만 리뷰어 목록 표시
+    const showReviewers = hasCollaborators && reviewStatusMessage.length > 0;
+    const reviewerListMessage = showReviewers
+      ? `리뷰어: ${reviewStatusMessage.join(", ")}\n`
+      : "";
+
+    return `[[PR] ${pr.title}](<${pr.html_url}>)\n${reviewerListMessage}<@${authorMention}>, ${approvalMessage}`;
   }
 
-  // 일반적인 리마인드 메시지
-  return `[[PR] ${pr.title}](<${pr.html_url}>)\n리뷰어: ${reviewStatusMessage.join(", ")}`;
+  // 머지 불가능한 일반 메시지
+  const showReviewers = reviewStatusMessage.length > 0;
+  return `[[PR] ${pr.title}](<${pr.html_url}>)\n${showReviewers ? `리뷰어: ${reviewStatusMessage.join(", ")}` : "리뷰어가 없습니다."}`;
 }
 
 module.exports = {
