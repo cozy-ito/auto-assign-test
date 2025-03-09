@@ -27,7 +27,7 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           DISCORD_MENTION: ${{ secrets.DISCORD_MENTION }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.EXPANDED_GITHUB_TOKEN }}
           script: |
             const script = require('.github/scripts/auto-review-reminder.cjs');
             await script({ github, context, core });
