@@ -107,6 +107,12 @@ async function getBranchProtectionRules(github, owner, repo, branch = "main") {
       branch,
     });
 
+    console.log(
+      `============= 보호 규칙`,
+      response.data,
+      response.data.required_pull_request_reviews,
+    );
+
     // 보호 규칙이 있는 경우
     if (response.data && response.data.required_pull_request_reviews) {
       const rules = response.data.required_pull_request_reviews;
