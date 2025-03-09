@@ -16,23 +16,8 @@ module.exports = async ({ github, context }) => {
 
   const owner = context.repo.owner;
   const repo = context.repo.repo;
-  let discordMentions;
+  const discordMentions = JSON.parse(process.env.DISCORD_MENTION);
   const discordWebhook = process.env.DISCORD_WEBHOOK;
-
-  // Discord 멘션 데이터 파싱 강화
-  try {
-    discordMentions = JSON.parse(process.env.DISCORD_MENTION || "{}");
-  } catch (error) {
-    console.error("Discord 멘션 데이터 파싱 실패:", error.message);
-    discordMentions = {};
-  }
-
-  // 리뷰 상태 약어 매핑을 상수로 정의
-  const STATE_ABBREVIATIONS = {
-    APPROVED: "Approved",
-    CHANGES_REQUESTED: "Changes Requested",
-    COMMENTED: "Commented",
-  };
 
   //* 특정 PR의 리뷰 상태 가져오기
   async function getReviews(owner, repo, prNumber) {
@@ -45,14 +30,11 @@ module.exports = async ({ github, context }) => {
   }
 
   try {
-    console.log(`${owner}/${repo} 저장소의 PR 정보를 가져오는 중...`);
     const pullRequests = await github.rest.pulls.list({
       owner,
       repo,
       state: "open",
     });
-
-    console.log(`총 ${pullRequests.data.length}개의 열린 PR 발견`);
 
     //* Draft 상태가 아니면서, 생성한 지 오래된 순으로 정렬
     const targetPRs = pullRequests.data
@@ -69,11 +51,8 @@ module.exports = async ({ github, context }) => {
       return; // 함수 종료
     }
 
-    console.log(`Draft가 아닌 PR ${targetPRs.length}개 처리 중...`);
-
     const messages = await Promise.all(
       targetPRs.map(async (pr) => {
-        console.log(`PR #${pr.number} "${pr.title}" 처리 중`);
         const reviews = await getReviews(owner, repo, pr.number);
         const requestedReviewers = pr.requested_reviewers.map(
           ({ login }) => login,
@@ -91,10 +70,15 @@ module.exports = async ({ github, context }) => {
         });
 
         const reviewStatuses = [...reviewStates].map(([reviewer, state]) => {
-          const discordUsername = discordMentions[reviewer] || reviewer;
+          const discordUsername = discordMentions[reviewer] || `${reviewer}`;
+          const STATE_ABBREVIATIONS = {
+            APPROVED: "Approved",
+            CHANGES_REQUESTED: "Changes Requested",
+            COMMENTED: "Commented",
+          };
+
           const reviewState = STATE_ABBREVIATIONS[state] || state.toLowerCase();
-          // 올바른 비교: state가 "APPROVED"인지 확인
-          return state === "APPROVED"
+          return state === STATE_ABBREVIATIONS.APPROVED
             ? `${discordUsername}(${reviewState})` // APPROVED인 경우 멘션 없이 이름만 표시
             : `<@${discordUsername}>(${reviewState})`; // 나머지 상태인 경우 멘션
         });
@@ -105,23 +89,21 @@ module.exports = async ({ github, context }) => {
             !reviewStates.has(reviewer) && reviewer !== pr.user.login, // PR 작성자 제외
         );
         const notStartedMentions = notStartedReviewers.map((reviewer) => {
-          const discordUsername = discordMentions[reviewer] || reviewer;
-          return `<@${discordUsername}>(X)`;
+          return `<@${discordMentions[reviewer]}>(X)`;
         });
 
         const reviewStatusMessage = [...reviewStatuses, ...notStartedMentions];
 
-        // 올바른 비교: reviewStates.get(reviewer)가 "APPROVED"인지 확인
-        const isAllReviewersApproved =
-          requestedReviewers.length > 0 &&
-          requestedReviewers.every(
-            (reviewer) => reviewStates.get(reviewer) === "APPROVED",
-          );
+        const isAllReviewersApproved = requestedReviewers.every(
+          (reviewer) =>
+            reviewStates.get(reviewer) === STATE_ABBREVIATIONS.APPROVED,
+        );
         const isNotHasPendingReviews = notStartedReviewers.length === 0;
 
         // 모든 리뷰어가 APPROVED 상태이고 리뷰를 시작하지 않은 리뷰어가 없는 경우
         if (isAllReviewersApproved && isNotHasPendingReviews) {
-          const authorMention = discordMentions[pr.user.login] || pr.user.login;
+          const authorMention =
+            discordMentions[pr.user.login] || `${pr.user.login}`;
           return `[[PR] ${pr.title}](<${pr.html_url}>)\n리뷰어: ${reviewStatusMessage.join(", ")}\n<@${authorMention}>, 모든 리뷰어의 승인 완료! 코멘트를 확인 후 머지해 주세요 🚀`;
         }
 
@@ -129,13 +111,6 @@ module.exports = async ({ github, context }) => {
         return `[[PR] ${pr.title}](<${pr.html_url}>)\n리뷰어: ${reviewStatusMessage.join(", ")}`;
       }),
     );
-
-    if (messages.length === 0) {
-      console.log("전송할 메시지가 없습니다.");
-      return;
-    }
-
-    console.log(`Discord에 ${messages.length}개의 PR 정보 전송 중...`);
 
     // 최종 메시지 Discord에 전송
     const response = await fetch(discordWebhook, {
@@ -149,16 +124,9 @@ module.exports = async ({ github, context }) => {
       }),
     });
 
-    if (response.ok) {
-      console.log(`Discord 메시지 전송 성공! 상태 코드: ${response.status}`);
-    } else {
-      console.error(`Discord 메시지 전송 실패. 상태 코드: ${response.status}`);
-      const responseText = await response.text();
-      console.error("응답 내용:", responseText);
-    }
+    console.log("Response status:", response.status);
   } catch (error) {
     console.error("Error processing PR reminders:", error.message);
-    console.error(error.stack);
     throw error; // 워크플로우 실패 상태 반환
   }
 };
