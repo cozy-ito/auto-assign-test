@@ -202,8 +202,13 @@ function analyzeReviewStatuses(
   );
 
   const notStartedMentions = notStartedReviewers.map((reviewer) => {
-    const discordUsername = discordMentions[reviewer] || reviewer;
-    return `<@${discordUsername}>(X)`;
+    const discordInfo = discordMentions[reviewer] || {
+      id: reviewer,
+      displayName: reviewer,
+    };
+    const displayName =
+      typeof discordInfo === "object" ? discordInfo.displayName : reviewer;
+    return `<@${displayName}>(X)`;
   });
 
   const reviewStatusMessage = [...reviewStatuses, ...notStartedMentions];
