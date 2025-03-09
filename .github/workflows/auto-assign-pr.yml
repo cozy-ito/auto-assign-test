@@ -1,18 +1,29 @@
-name: Auto Assign PR
+name: PR Review Management
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
+    branches: ["*"]
+  schedule:
+    - cron: "*/5 * * * *" # 매 5분마다
+  workflow_dispatch:
 
 jobs:
-  auto-assign:
+  pr-management:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+      checks: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run assign reviewers script
         uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'reopened')
         env:
           COLLABORATORS: ${{ secrets.COLLABORATORS }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
@@ -21,4 +32,15 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const script = require('.github/scripts/assign-reviewer.cjs');
+            await script({ github, context, core });
+
+      - name: Send Reminder to Discord
+        uses: actions/github-script@v7
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_MENTION: ${{ secrets.DISCORD_MENTION }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('.github/scripts/auto-review-reminder.cjs');
             await script({ github, context, core });
