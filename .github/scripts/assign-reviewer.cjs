@@ -2,7 +2,7 @@ module.exports = async ({ github, context, core }) => {
   const creator = context.payload.pull_request.user.login;
 
   // 환경 변수에서 사용자명 읽기
-  const { jinSJUser } = JSON.parse(process.env.COLLABORATORS);
+  const { jinSJUser, jinUser } = JSON.parse(process.env.COLLABORATORS);
 
   // 모든 사용자명이 제대로 설정되었는지 확인
   if (!jinSJUser) {
@@ -12,7 +12,7 @@ module.exports = async ({ github, context, core }) => {
 
   // 리뷰어 매핑 정의
   const reviewerMap = {
-    [jinSJUser]: [jinSJUser],
+    [jinSJUser]: [jinUser],
   };
 
   // 해당 사용자의 리뷰어 배열 가져오기
@@ -22,12 +22,12 @@ module.exports = async ({ github, context, core }) => {
   if (reviewers) {
     try {
       // 리뷰어 요청
-      // await github.rest.pulls.requestReviewers({
-      //   owner: context.repo.owner,
-      //   repo: context.repo.repo,
-      //   pull_number: context.payload.pull_request.number,
-      //   reviewers: reviewers,
-      // });
+      await github.rest.pulls.requestReviewers({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        pull_number: context.payload.pull_request.number,
+        reviewers: reviewers,
+      });
 
       // 본인을 담당자로 지정
       await github.rest.issues.addAssignees({

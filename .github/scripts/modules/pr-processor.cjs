@@ -197,7 +197,7 @@ function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
       ? `리뷰어: ${reviewStatusMessage.join(", ")}\n`
       : "";
 
-    return `[[PR] ${pr.title}](<${pr.html_url}>)\n${reviewerList}<@${authorMention}>, 머지 준비가 완료되지 않았습니다. 리뷰 변경 요청을 확인해 주세요.`;
+    return `[[PR] ${pr.title}](<${pr.html_url}>)\n${reviewerList}<@${authorMention}>, 머지 준비가 완료되지 않았습니다. PR을 확인해 주세요.`;
   }
 
   // 일반 메시지
