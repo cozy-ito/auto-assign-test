@@ -4,8 +4,6 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     branches: ["*"]
-  pull_request_review:
-    types: [submitted]
   schedule:
     - cron: "0 17 * * *" # 매일 오후 5시
   workflow_dispatch:
