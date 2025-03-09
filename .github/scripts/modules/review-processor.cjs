@@ -217,7 +217,7 @@ class ReviewAlarmService {
 
       // Discord로 메시지 전송
       await sendDiscordMessage(this.discordWebhook, [message], {
-        headerText: "🍀 리뷰 정보 🍀",
+        headerText: "⭐️ 리뷰 알림 ⭐️",
       });
     } catch (error) {
       console.error("리뷰 알림 처리 중 오류 발생:", error.message);
