@@ -172,31 +172,12 @@ function analyzeReviewStatuses(
   hasCollaborators,
   protectionRules,
 ) {
-  // 최신 리뷰 상태만 고려 (dismissal과 오래된 리뷰 처리)
-  const latestReviews = new Map();
-  reviews.forEach((review) => {
-    const reviewer = review.user.login;
-
-    // 이미 존재하는 리뷰가 있다면 최신 리뷰로 덮어쓰기
-    // dismissStaleReviews가 true인 경우 오래된 승인 무시
-    if (
-      protectionRules.dismissStaleReviews &&
-      review.state === GITHUB_REVIEW_STATES.APPROVED
-    ) {
-      // 최신 리뷰만 고려
-      latestReviews.set(reviewer, review);
-    } else if (!latestReviews.has(reviewer)) {
-      // 첫 번째 리뷰인 경우 추가
-      latestReviews.set(reviewer, review);
-    }
-  });
-
   // 리뷰 상태를 관리하는 Map 객체 생성
   const reviewStates = new Map();
-  latestReviews.forEach((review) => {
+  reviews.forEach((review) => {
     const reviewer = review.user.login;
     const state = review.state;
-    if (reviewer !== pr.user.login || review.state !== "DISMISSED") {
+    if (reviewer !== pr.user.login) {
       // PR 작성자는 제외
       reviewStates.set(reviewer, state);
     }
