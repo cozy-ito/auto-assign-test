@@ -1,0 +1,46 @@
+name: Auto Send PR Discord Alarm
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    branches: ["*"]
+  workflow_dispatch:
+
+jobs:
+  pr-management:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+      checks: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run assign reviewers script
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'ready_for_review')
+        env:
+          COLLABORATORS: ${{ secrets.COLLABORATORS }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('.github/scripts/assign-reviewer.cjs');
+            await script({ github, context, core });
+
+      - name: Send PR Alarm to Discord
+        uses: actions/github-script@v7
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_MENTION: ${{ secrets.DISCORD_MENTION }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('.github/scripts/auto-pr-alarm.cjs');
+            await script({ github, context, core });
