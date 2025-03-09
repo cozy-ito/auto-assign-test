@@ -184,16 +184,12 @@ function analyzeReviewStatuses(
       id: reviewer,
       displayName: reviewer,
     };
-    const discordId =
-      typeof discordInfo === "object" ? discordInfo.id : discordInfo;
-    const displayName =
-      typeof discordInfo === "object" ? discordInfo.displayName : reviewer;
     const reviewState = STATE_ABBREVIATIONS[state] || state.toLowerCase();
 
     // 중요: GitHub API 리뷰 상태를 직접 비교 (APPROVED)
     return state === GITHUB_REVIEW_STATES.APPROVED
-      ? `${displayName}(${reviewState})` // APPROVED인 경우 표시 이름 사용
-      : `<@${discordId}>(${reviewState})`; // 나머지 상태인 경우 멘션
+      ? `${discordInfo.displayName}(${reviewState})` // APPROVED인 경우 표시 이름 사용
+      : `<@${discordInfo.id}>(${reviewState})`; // 나머지 상태인 경우 멘션
   });
 
   // 리뷰를 시작하지 않은 리뷰어 추가
@@ -204,11 +200,8 @@ function analyzeReviewStatuses(
   const notStartedMentions = notStartedReviewers.map((reviewer) => {
     const discordInfo = discordMentions[reviewer] || {
       id: reviewer,
-      displayName: reviewer,
     };
-    const displayName =
-      typeof discordInfo === "object" ? discordInfo.displayName : reviewer;
-    return `<@${displayName}>(X)`;
+    return `<@${discordInfo.id}>(X)`;
   });
 
   const reviewStatusMessage = [...reviewStatuses, ...notStartedMentions];
