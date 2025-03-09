@@ -91,6 +91,62 @@ async function generatePRMessages(
 }
 
 /**
+ * 레포지토리의 브랜치 보호 규칙을 확인하여 PR 승인이 필요한지 확인합니다.
+ * @param {Object} github - GitHub API 클라이언트
+ * @param {string} owner - 저장소 소유자
+ * @param {string} repo - 저장소 이름
+ * @param {string} branch - 브랜치 이름 (일반적으로 'main' 또는 'master')
+ * @returns {Object} 보호 규칙 정보 객체 { requiresApproval, requiredApprovingReviewCount }
+ */
+async function getBranchProtectionRules(github, owner, repo, branch = "main") {
+  try {
+    // 브랜치 보호 규칙 가져오기
+    const response = await github.rest.repos.getBranchProtection({
+      owner,
+      repo,
+      branch,
+    });
+
+    // 보호 규칙이 있는 경우
+    if (response.data && response.data.required_pull_request_reviews) {
+      const rules = response.data.required_pull_request_reviews;
+
+      // 필요한 승인 수 확인
+      const requiredApprovingReviewCount =
+        rules.required_approving_review_count || 0;
+
+      return {
+        requiresApproval: requiredApprovingReviewCount > 0,
+        requiredApprovingReviewCount,
+        dismissStaleReviews: rules.dismiss_stale_reviews || false,
+        requireCodeOwnerReviews: rules.require_code_owner_reviews || false,
+        restrictDismissals: rules.restrict_dismissals || false,
+      };
+    } else {
+      // 보호 규칙이 없는 경우
+      return {
+        requiresApproval: false,
+        requiredApprovingReviewCount: 0,
+        dismissStaleReviews: false,
+        requireCodeOwnerReviews: false,
+        restrictDismissals: false,
+      };
+    }
+  } catch (error) {
+    // 오류 발생 시 (보호 규칙이 없는 경우나 접근 권한 문제 등)
+    console.warn(`브랜치 보호 규칙 확인 중 오류 발생:`, error.message);
+
+    return {
+      requiresApproval: false,
+      requiredApprovingReviewCount: 0,
+      dismissStaleReviews: false,
+      requireCodeOwnerReviews: false,
+      restrictDismissals: false,
+    };
+  }
+}
+
+/**
  * PR의 리뷰 상태를 분석합니다.
  * @param {Object} pr - PR 객체
  * @param {Array} reviews - 리뷰 목록
