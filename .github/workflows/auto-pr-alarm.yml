@@ -51,16 +51,42 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Get PR Details
+        id: get_pr_details
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+
+            core.setOutput('pr_details', JSON.stringify(pullRequest));
+
       - name: Send PR Alarm to Discord
         uses: actions/github-script@v7
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           DISCORD_MENTION: ${{ secrets.DISCORD_MENTION }}
+          PR_DETAILS: ${{ steps.get_pr_details.outputs.pr_details }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const prDetails = JSON.parse(process.env.PR_DETAILS);
             const script = require('.github/scripts/auto-pr-alarm.cjs');
-            await script({ github, context, core });
+            await script({ 
+              github, 
+              context: {
+                ...context,
+                payload: {
+                  ...context.payload,
+                  pull_request: prDetails
+                }
+              }, 
+              core 
+            });
 
 # 워크플로우 실행 중 리소스 제한
 defaults:
