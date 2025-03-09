@@ -233,12 +233,13 @@ function analyzeReviewStatuses(
 
   // 디버깅용 로그
   console.log(`PR #${pr.number} 승인 상태:`, {
-    hasCollaborators,
+    reviewStatusMessage,
+    isAllReviewersApproved,
+    isNotHasPendingReviews,
     hasNoRequestedReviewers,
     approvedReviewCount,
     isApprovalComplete,
-    isAllReviewersApproved,
-    isNotHasPendingReviews,
+    requiredApprovingReviewCount: protectionRules.requiredApprovingReviewCount,
   });
 
   return {
@@ -246,8 +247,6 @@ function analyzeReviewStatuses(
     isAllReviewersApproved,
     isNotHasPendingReviews,
     hasNoRequestedReviewers,
-    approvedReviewCount,
-    isApprovalComplete,
     approvedReviewCount,
     isApprovalComplete,
     requiredApprovingReviewCount: protectionRules.requiredApprovingReviewCount,
@@ -273,7 +272,7 @@ function generatePRMessage(pr, reviewInfo, discordMentions, hasCollaborators) {
   } = reviewInfo;
 
   // PR 작성자 언급을 위한 Discord ID
-  const authorMention = discordMentions[pr.user.login] || pr.user.login;
+  const authorMention = discordMentions[pr.user.login].id || pr.user.login;
 
   // 머지 가능 여부 확인
   const canMerge = isApprovalComplete && isNotHasPendingReviews;
