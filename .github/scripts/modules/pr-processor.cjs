@@ -142,6 +142,7 @@ async function getBranchProtectionRules(github, owner, repo, branch = "main") {
     }
   } catch (error) {
     // 오류 발생 시 (보호 규칙이 없는 경우나 접근 권한 문제 등)
+    console.warn(`브랜치 보호 규칙 확인 중 오류 발생:`, error);
     console.warn(`브랜치 보호 규칙 확인 중 오류 발생:`, error.message);
 
     return {
